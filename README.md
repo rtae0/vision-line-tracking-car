@@ -28,9 +28,9 @@
 
 ---
 ## 📍 rc카 구성
-| ![image](images/up.png) | ![image](images/left.png) | ![image](images/right.png) | ![image](images/led.png) |
+| ![image](images/up.png) | ![image](images/front.png) | ![image](images/right.png) | ![image](images/led.png) |
 | :---------------------: | :----------------------: | :-----------------------: | :---------------------: |
-| 직진 (STRAIGHT)         | 좌회전 (LEFT)            | 우회전 (RIGHT)            | 후방 LED 상태           |
+| 상단(Top View)     | 앞  (Front View)    | 옆  (Side View)   | 후방 LED(Rear LED Indicator) |
 
 ## 📂 소스별 동작 요약
 
