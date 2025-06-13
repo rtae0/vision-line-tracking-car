@@ -1,0 +1,147 @@
+<!DOCTYPE html> <!-- HTML5 문서 선언 -->
+<html lang="ko"> <!-- 한국어 문서 시작 -->
+<head>
+    <meta charset="UTF-8"> <!-- 문자 인코딩을 UTF-8로 설정 -->
+    <title>WebSocket Stream</title> <!-- 탭에 표시될 제목 -->
+</head>
+<body>
+    <h1>📷 실시간 스트리밍</h1> <!-- 상단 헤드라인 -->
+
+    <!-- 실시간 스트림 이미지를 표시할 img 태그 -->
+    <img id="stream" width="320" height="240" />
+    <br><br>
+
+    <!-- 자율주행 모드 토글 버튼. 클릭 시 sendAutonomous() 실행 -->
+    <button id="autoBtn" onclick="sendAutonomous()">🔁 자율주행 모드: 확인 중...</button>
+
+    <!-- 현재 방향을 보여줄 텍스트 -->
+    <p id="directionText">➡️ 방향 확인 중...</p>
+    <!-- 아두이노 연결 상태를 보여줄 텍스트 -->
+    <p id="arduinoText">🧩 아두이노 연결 확인 중...</p>
+
+    <!-- 시리얼 통신 로그를 보여주는 읽기전용 textarea -->
+    <h3>📜 시리얼 전송 로그</h3>
+    <textarea id="serialLog" rows="10" cols="40" readonly style="resize: none;"></textarea>
+
+    <script>
+        // img 요소를 선택하여 변수에 저장 (실시간 스트림 표시용)
+        const img = document.getElementById("stream");
+
+        // WebSocket 객체 생성, 현재 호스트의 8765 포트로 연결
+        const ws = new WebSocket("ws://" + location.hostname + ":8765");
+
+        // 자율주행 모드 버튼 요소 선택
+        const autoBtn = document.getElementById("autoBtn");
+
+        // WebSocket 메시지 수신 시 실행되는 이벤트 핸들러
+        ws.onmessage = (event) => {
+            // 수신된 이진 데이터를 Blob(JPEG 이미지)으로 변환
+            const blob = new Blob([event.data], { type: "image/jpeg" });
+            // Blob을 이미지 URL로 변환하여 <img>의 src로 설정 (즉시 화면에 표시)
+            img.src = URL.createObjectURL(blob);
+        };
+
+        // 자율주행 모드 토글 버튼 클릭 시 호출되는 함수
+        async function sendAutonomous() {
+            try {
+                // /autonomous 엔드포인트로 POST 요청을 보내 자율주행 모드를 토글
+                await fetch("/autonomous", { method: "POST" });
+                // 토글 후 현재 모드 상태를 갱신
+                await checkMode();
+            } catch {
+                // 실패시 콘솔에 에러 메시지 출력
+                console.error("❌ 자율주행 명령 실패");
+            }
+        }
+
+        // 현재 자율주행 모드 상태를 서버에서 받아와 버튼에 표시하는 함수
+        async function checkMode() {
+            try {
+                // /mode 엔드포인트에서 모드 상태(ON/OFF)를 받아옴
+                const res = await fetch("/mode");
+                // 응답 텍스트(ON 또는 OFF)
+                const mode = await res.text();
+                // 버튼 텍스트를 현재 모드 상태로 갱신
+                autoBtn.innerText = `🔁 자율주행 모드: ${mode}`;
+            } catch {
+                // 실패시 버튼 텍스트에 오류 표시
+                autoBtn.innerText = "❌ 모드 확인 실패";
+            }
+        }
+
+        // 현재 방향 정보를 서버에서 받아와 표시하는 함수
+        async function checkDirection() {
+            try {
+                // /status 엔드포인트에서 현재 방향(STRAIGHT 등)을 받아옴
+                const res = await fetch("/status");
+                // 응답 텍스트(방향 정보)
+                const direction = await res.text();
+                // 방향 표시 텍스트 갱신
+                document.getElementById("directionText").innerText = "➡️ 현재 방향: " + direction;
+            } catch {
+                // 실패시 오류 표시
+                document.getElementById("directionText").innerText = "❌ 방향 확인 실패";
+            }
+        }
+
+        // 아두이노 연결 상태를 받아와 표시하는 함수
+        async function checkArduino() {
+            try {
+                // /arduino 엔드포인트에서 연결 상태(CONNECTED/DISCONNECTED)를 받아옴
+                const res = await fetch("/arduino");
+                // 응답 텍스트(상태 정보)
+                const status = await res.text();
+                // 연결 상태에 따라 이모지 선택
+                const emoji = status === "CONNECTED" ? "✅" : "⚠️";
+                // 상태 텍스트에 표시
+                document.getElementById("arduinoText").innerText = `${emoji} 아두이노 상태: ${status}`;
+            } catch {
+                // 실패시 오류 표시
+                document.getElementById("arduinoText").innerText = "❌ 아두이노 상태 확인 실패";
+            }
+        }
+
+        // 시리얼 통신 로그를 받아와 textarea에 표시하는 함수
+        async function checkSerialLog() {
+            try {
+                // /serial-log 엔드포인트에서 로그 받아옴
+                const res = await fetch("/serial-log");
+                // 응답 텍스트(로그 전체)
+                const log = await res.text();
+                // textarea 요소 선택
+                const logBox = document.getElementById("serialLog");
+                // textarea에 로그 출력
+                logBox.value = log;
+                // 스크롤을 항상 맨 아래로 이동시킴(최신 로그가 보이도록)
+                logBox.scrollTop = logBox.scrollHeight;
+
+                // 로그의 마지막 줄을 확인하여 상태에 따라 버튼 제어
+                const lines = log.trim().split("\n"); // 줄 단위로 분할
+                const last = lines[lines.length - 1] || ""; // 마지막 줄
+
+                // (recv) a가 수신된 경우(아두이노에서 자율주행 명령)
+                if (last.includes("(recv) a")) {
+                    // 버튼 비활성화 및 텍스트 갱신(자동)
+                    autoBtn.disabled = true;
+                    autoBtn.innerText = "🔁 자율주행 모드: ON (자동)";
+                } else if (last.includes("(recv) n")) {
+                    // n(수동) 수신시 버튼 활성화 및 모드 상태 갱신
+                    autoBtn.disabled = false;
+                    await checkMode();  // 버튼 텍스트 재확인
+                }
+            } catch {
+                // 실패시 textarea에 오류 표시
+                document.getElementById("serialLog").value = "❌ 로그 불러오기 실패";
+            }
+        }
+
+        // 주기적으로 상태 정보를 자동 갱신 (setInterval 사용)
+
+        setInterval(checkMode, 2000);         // 2초마다 자율주행 모드 상태 갱신
+        setInterval(checkDirection, 500);     // 0.5초마다 방향 정보 갱신
+        setInterval(checkArduino, 2000);      // 2초마다 아두이노 연결 상태 갱신
+        setInterval(checkSerialLog, 1000);    // 1초마다 시리얼 로그 갱신
+
+    </script>
+</body>
+</html>
