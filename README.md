@@ -152,7 +152,6 @@ if contours:
 
 ### 📈 통신 흐름 예시
 
-```text
 1. Raspberry Pi → 'a' 전송 → Arduino 자율주행 모드 진입 → 'a' 응답 수신
 2. Raspberry Pi → 'f' + 방향문자(l/r/s 등) 주기적 전송 → Arduino 실시간 차량 제어
 3. Raspberry Pi → 필요 시 'n' 전송 → Arduino 수동 모드 복귀 → 'n' 응답 수신
@@ -174,7 +173,7 @@ if contours:
   - `PinChangeInterrupt` - RC 수신기 PWM 신호 디코딩용
   - `Servo` - 서보 제어
 
-## 🚘 동작 개요
+## 🚘 아두이노 동작 개요
 
 ### 1. **수동 모드**
 - **CH1 (좌우 핸들)**: 900~1800 범위 입력 → 앞바퀴 서보 각도 45~135도로 변환
